@@ -1,0 +1,24 @@
+[project]
+name = "careerpilot"
+version = "0.1.0"
+description = "AI job-search co-pilot — harness + loop + memory + eval, Qdrant-backed"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic",
+    "qdrant-client",
+    "pytest",
+    # TODO: add your embeddings provider SDK (e.g. openai, or a local
+    # sentence-transformers model) for memory/semantic/qdrant_store.py
+    # TODO: add "python-dotenv" if you want .env auto-loading
+    "openai>=2.49.0",
+    "python-dotenv>=1.2.2",
+]
+
+[project.optional-dependencies]
+telegram = ["python-telegram-bot"]
+dashboard = ["fastapi", "uvicorn"]
+mcp = ["mcp"]
+# voice deliberately has no extra yet — see gateway/voice.py's docstring
+
+[project.scripts]
+careerpilot = "careerpilot.gateway.cli:main"

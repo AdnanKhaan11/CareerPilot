@@ -1,0 +1,18 @@
+# --- LLM providers ---
+openai>=1.0            # used for Groq (via base_url) and OpenAI itself
+# anthropic>=0.68         # used if you switch to an Anthropic-native provider later
+fastapi 
+uvicorn[standard]
+# --- semantic memory ---
+qdrant-client>=1.10
+fastembed>=0.4          # local embeddings — no API key, no network call per embedding
+
+# --- job search ---
+ddgs>=1.0               # keyless web search fallback
+tavily-python>=0.5      # optional — only used if TAVILY_API_KEY is set
+
+# --- config ---
+python-dotenv>=1.0
+
+# --- testing ---
+pytest>=8.0
