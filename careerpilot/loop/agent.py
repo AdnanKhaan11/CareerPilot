@@ -60,12 +60,15 @@ def run_loop(
     notify = observer or (lambda kind, ev: None)
     result = LoopResult(reply="")
     can_stream = stream and hasattr(client.messages, "stream")
+    notify("trace.start", {"model": model, "max_iterations": max_iterations})
 
     for iteration in range(1, max_iterations + 1):
         result.iterations = iteration
 
         # ---- reason: one LLM call with the current working memory
         response = None
+        operation_id = f"llm:{iteration}"
+        notify("llm.start", {"operation_id": operation_id, "iteration": iteration})
         if can_stream:
             try:
                 with client.messages.stream(
@@ -81,13 +84,18 @@ def run_loop(
             except Exception:
                 response = None  # any streaming hiccup → fall back to one call
         if response is None:
-            response = client.messages.create(
-                model=model,
-                system=system,
-                messages=messages,
-                tools=tools.schemas(),
-                max_tokens=max_tokens,
-            )
+            try:
+                response = client.messages.create(
+                    model=model,
+                    system=system,
+                    messages=messages,
+                    tools=tools.schemas(),
+                    max_tokens=max_tokens,
+                )
+            except Exception as exc:
+                notify("llm.fail", {"operation_id": operation_id, "error": repr(exc)})
+                notify("trace.fail", {"error": repr(exc)})
+                raise
         notify(
             "llm",
             {
@@ -99,6 +107,18 @@ def run_loop(
                 },
             },
         )
+        notify(
+            "llm.finish",
+            {
+                "operation_id": operation_id,
+                "iteration": iteration,
+                "stop_reason": response.stop_reason,
+                "usage": {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                },
+            },
+        )
 
         messages.append({"role": "assistant", "content": response.content})
 
@@ -107,15 +127,32 @@ def run_loop(
         # ---- guardrail 1: no tool calls → the model is talking to the human
         if not tool_uses:
             result.reply = "".join(b.text for b in response.content if b.type == "text")
+            notify("response.start", {})
+            notify("response.finish", {"reply": result.reply})
+            notify("trace.finish", {})
             return result
 
         # ---- act: execute each requested tool; observe: feed results back
         tool_results = []
         for call in tool_uses:
-            output = tools.execute(call.name, call.input)
+            operation_id = f"tool:{iteration}:{call.id}"
+            notify(
+                "tool.start",
+                {"operation_id": operation_id, "tool": call.name, "args": call.input},
+            )
+            try:
+                output = tools.execute(call.name, call.input)
+            except Exception as exc:
+                notify("tool.fail", {"operation_id": operation_id, "error": repr(exc)})
+                notify("trace.fail", {"error": repr(exc)})
+                raise
             event = {"tool": call.name, "args": call.input, "output": output}
             result.tool_calls.append(event)
             notify("tool", event)
+            notify(
+                "tool.finish",
+                {"operation_id": operation_id, "tool": call.name, "output": output},
+            )
             tool_results.append(
                 {"type": "tool_result", "tool_use_id": call.id, "content": output}
             )
@@ -123,4 +160,7 @@ def run_loop(
 
     # ---- guardrail 2: ran out of iterations
     result.reply = "(I hit my iteration limit before finishing — try breaking the request into smaller steps.)"
+    notify("response.start", {})
+    notify("response.finish", {"reply": result.reply})
+    notify("trace.finish", {})
     return result

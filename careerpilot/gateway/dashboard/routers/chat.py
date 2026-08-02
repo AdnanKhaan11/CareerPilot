@@ -23,6 +23,7 @@ from fastapi.responses import StreamingResponse
 from careerpilot.config.settings import settings
 from careerpilot.loop.agent import run_loop
 from careerpilot.loop.models import get_client
+from careerpilot.ops.tracing import make_observer
 from careerpilot.runtime.session import build_working_memory
 from careerpilot.tools.registry import build_default_registry
 from careerpilot.gateway.dashboard import session_store, conversations_store
@@ -68,6 +69,7 @@ def chat(payload: ChatRequest) -> ChatResponse:
         messages=messages,
         tools=tools,
         max_iterations=settings.max_iterations,
+        observer=make_observer(),
     )
 
     session_store.set(conversation_id, messages)
@@ -95,8 +97,10 @@ def _run_loop_producer(
         system_prompt, messages = build_working_memory(user_message, history)
         client = get_client(settings)
         tools = build_default_registry()
+        trace_observer = make_observer()
 
         def observer(kind: str, event: dict) -> None:
+            trace_observer(kind, event)
             if kind == "text":
                 event_queue.put(("text", {"delta": event["delta"]}))
             elif kind == "tool":

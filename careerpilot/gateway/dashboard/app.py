@@ -12,11 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from careerpilot.gateway.dashboard import runtime_settings, conversations_store
+from careerpilot.gateway.dashboard.routes import traces
 from careerpilot.memory.episodic.sqlite_store import init_db as init_episodic_db
 from careerpilot.gateway.dashboard.routers import (
     applications,
     chat,
     conversations,
+    dashboard,
     memory,
     settings as settings_router,
     skills,
@@ -60,6 +62,8 @@ app.include_router(applications.router)
 app.include_router(memory.router)
 app.include_router(settings_router.router)
 app.include_router(skills.router)
+app.include_router(dashboard.router)
+app.include_router(traces.router)
 
 
 @app.get("/health")

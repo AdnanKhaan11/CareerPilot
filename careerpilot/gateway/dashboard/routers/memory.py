@@ -18,7 +18,11 @@ router = APIRouter(prefix="/memory", tags=["memory"])
 @router.get("/notes", response_model=NotesResponse)
 def get_notes(query: str = Query(default="")) -> NotesResponse:
     results = search_semantic(query, top_k=20) if query else []
-    return NotesResponse(notes=results)
+
+    return NotesResponse(
+        notes=results,
+        count=len(results),
+    )
 
 
 @router.get("/profile", response_model=ProfileResponse)

@@ -150,3 +150,41 @@ class SkillCreateResponse(BaseModel):
 class ErrorResponse(BaseModel):
     success: bool = False
     error: str
+
+
+# ------------------------------------------------------
+# Dashboard
+# ------------------------------------------------------
+
+
+class DashboardStats(BaseModel):
+    conversations: int
+    applications: int
+    skills: int
+    memories: int
+
+
+class DashboardRecentApplication(BaseModel):
+    company: str
+    role: str
+    status: str
+    date_applied: str
+
+
+class DashboardRecentSkill(BaseModel):
+    name: str
+    description: str
+
+
+class DashboardResponse(BaseModel):
+    success: bool = True
+
+    stats: DashboardStats
+
+    recent_applications: list[DashboardRecentApplication]
+
+    recent_skills: list[DashboardRecentSkill]
+
+    provider: str
+
+    model: str

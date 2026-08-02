@@ -251,29 +251,52 @@ class OpenAICompatClient:
         return kwargs
 
     # this function nactuially called the openai model
+    # def _call(self, kwargs: dict, **extra):
+    #     try:
+    #         return self._client.chat.completions.create(**kwargs, **extra)
+    #     except Exception as exc:
+    #         m = str(exc).lower()
+    #         if (
+    #             "max_completion_tokens" not in m
+    #             and "max_tokens" not in m
+    #             and "tool_use_failed" not in m
+    #         ):
+    #             raise
+    #         if "tool_use_failed" in m:
+    #             # Some Groq-hosted models occasionally emit a tool call as
+    #             # literal text instead of the API's structured format, which
+    #             # Groq then rejects outright rather than returning as plain
+    #             # text. Retrying once without tools lets the model at least
+    #             # reply normally instead of crashing the whole turn.
+    #             k = dict(kwargs)
+    #             k.pop("tools", None)
+    #             return self._client.chat.completions.create(**k, **extra)
+    #         k = dict(kwargs)
+    #         k["max_tokens"] = k.pop("max_completion_tokens", None)
+    #         return self._client.chat.completions.create(**k, **extra)
+
     def _call(self, kwargs: dict, **extra):
-        try:
-            return self._client.chat.completions.create(**kwargs, **extra)
-        except Exception as exc:
-            m = str(exc).lower()
-            if (
-                "max_completion_tokens" not in m
-                and "max_tokens" not in m
-                and "tool_use_failed" not in m
-            ):
+        last_exc = None
+        for attempt in range(2):  # tool_use_failed is often a one-off glitch — give it a real second try
+            try:
+                return self._client.chat.completions.create(**kwargs, **extra)
+            except Exception as exc:
+                m = str(exc).lower()
+                if "tool_use_failed" in m:
+                    last_exc = exc
+                    continue  # retry the SAME request, tools still included
+                if "max_completion_tokens" in m or "max_tokens" in m:
+                    k = dict(kwargs)
+                    k["max_tokens"] = k.pop("max_completion_tokens", None)
+                    return self._client.chat.completions.create(**k, **extra)
                 raise
-            if "tool_use_failed" in m:
-                # Some Groq-hosted models occasionally emit a tool call as
-                # literal text instead of the API's structured format, which
-                # Groq then rejects outright rather than returning as plain
-                # text. Retrying once without tools lets the model at least
-                # reply normally instead of crashing the whole turn.
-                k = dict(kwargs)
-                k.pop("tools", None)
-                return self._client.chat.completions.create(**k, **extra)
-            k = dict(kwargs)
-            k["max_tokens"] = k.pop("max_completion_tokens", None)
-            return self._client.chat.completions.create(**k, **extra)
+        # Both attempts failed to format a tool call — raise a clear, honest
+        # error instead of silently stripping tools and letting the model
+        # generate a normal-sounding reply with nothing real behind it.
+        raise RuntimeError(
+            "The model repeatedly failed to format a tool call correctly. "
+            "Try rephrasing your request, or sending it again."
+        ) from last_exc
 
     def _create(self, *, model, messages, max_tokens, system=None, tools=None):
         """Reverse translator. Takes OpenAI's response, converts its text,

@@ -42,13 +42,21 @@ EDITABLE_FIELDS = {
 def load_overlay() -> None:
     if not RUNTIME_CONFIG_PATH.exists():
         return
+
     try:
         overrides = json.loads(RUNTIME_CONFIG_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return
+
     for key, value in overrides.items():
-        if key in EDITABLE_FIELDS:
-            setattr(settings, key, value)
+        if key not in EDITABLE_FIELDS:
+            continue
+
+        # Never overwrite existing values with blank ones.
+        if value in ("", None):
+            continue
+
+        setattr(settings, key, value)
 
 
 def _persist() -> None:
