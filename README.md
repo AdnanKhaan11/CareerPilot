@@ -245,4 +245,4 @@ MIT
 
 ## Author
 
-Built by [Adnan](https://github.com/) as a portfolio project demonstrating production agent architecture — B.S. Software Engineering, University of Haripur, Pakistan.
+Built by [Adnan](https://github.com/AdnanKhaan11) as a portfolio project demonstrating production agent architecture — B.S. Software Engineering, University of Haripur, Pakistan.
