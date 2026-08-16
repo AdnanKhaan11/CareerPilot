@@ -1,0 +1,2 @@
+ uvicorn careerpilot.gateway.dashboard.app:app --reload --port 7777                                                   
+                   

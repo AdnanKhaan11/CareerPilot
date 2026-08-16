@@ -7,7 +7,9 @@ CareerPilot is a single-user, bring-your-own-key (BYOK) AI agent for people acti
 It was built by studying [waku-agent](https://github.com/ShenSeanChen/waku-agent) — a reference implementation of agent architecture by ShenSeanChen — line by line, then re-implementing its core ideas from scratch for a different domain, rather than copying it. See [Acknowledgments](#acknowledgments--reference) for exactly what was learned from it and what was deliberately built differently.
 
 ---
-
+![alt text](image.png)
+#### Execution Graph
+![alt text](image-1.png)
 ## Why this exists
 
 Most "build an AI agent" tutorials wrap a chat loop around a framework and call it done. CareerPilot is the opposite: the entire agent loop, tool-calling, memory system, and provider abstraction are hand-written, framework-free, and independently tested — because the point of building it was to actually understand what an agent framework is hiding, not to hide it again one layer down.
